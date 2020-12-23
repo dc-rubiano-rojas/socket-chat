@@ -16,19 +16,19 @@ io.on('connection', (client) => {
         }
 
         client.join(data.sala);
-
         usuarios.agregarPersona(client.id, data.nombre, data.sala);
-
         client.broadcast.to(data.sala).emit('listaPersonas', usuarios.getPersonasPorSala(data.sala));
-
+        client.broadcast.to(data.sala).emit('crearMensaje', crearMensaje('Administrador', `${data.nombre} se unió!`));
         callback(usuarios.getPersonasPorSala(data.sala));
     });
 
 
-    client.on('crearMensaje', (data) => {
+    client.on('crearMensaje', (data, callback) => {
         let persona = usuarios.getPersona(client.id);
+
         let mensaje = crearMensaje(persona.nombre, data.mensaje);
         client.broadcast.to(persona.sala).emit('crearMensaje', mensaje);
+        callback(mensaje);
     });
 
 
@@ -40,9 +40,29 @@ io.on('connection', (client) => {
 
 
     // Mensajes Privados
-    client.on('mensajePrivado', data => {
+    client.on('enviarMensajePrivado', data => {
         let persona = usuarios.getPersona(client.id);
         client.broadcast.to(data.para).emit('mensajePrivado', crearMensaje(persona.nombre, data.mensaje));
+    });
+
+
+
+    // // Buscar Personas
+    client.on('buscarPersonas', (persona, callback) => {
+        // console.log(persona);
+        var personasPorSala = usuarios.getPersonasPorSala(persona.sala);
+
+        personasFiltradas = [];
+
+        personasPorSala.forEach(personaEnSala => {
+            const personaLower = personaEnSala.nombre.toLowerCase();
+            // console.log(personaEnSala);
+            if (personaLower.indexOf(persona.usuario) >= 0) {
+                personasFiltradas.push(personaEnSala);
+            }
+        });
+        callback(personasFiltradas);
+
     });
 
 });
